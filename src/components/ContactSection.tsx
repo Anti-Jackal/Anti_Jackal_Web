@@ -2,26 +2,40 @@ import React, {useState} from 'react';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {Textarea} from '@/components/ui/textarea';
-import {
-    Send,
-    Phone,
-    Mail,
-    CheckCircle
-} from 'lucide-react';
+import {Send, Phone, Mail, CheckCircle} from 'lucide-react';
+import emailjs from 'emailjs-com';
 
 const ContactSection = () => {
     const [submitted, setSubmitted] = useState(false);
+    const [formData, setFormData] = useState({
+        name: '',
+        email: '',
+        subject: '',
+        message: ''
+    });
 
-    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    const handleChange = (e) => {
+        const {name, value} = e.target;
+        setFormData(prev => ({...prev, [name]: value}));
+    };
+
+    const handleSubmit = (e) => {
         e.preventDefault();
-        // Simulate form submission
-        setSubmitted(true);
+
+        emailjs.send('service_seam4tm', 'template_r45l3nm', formData, 'V1v-InGmBSIdep-kq')
+            .then((response) => {
+                console.log('УСПЕХ!', response.status, response.text);
+                setSubmitted(true);
+                setFormData({name: '', email: '', subject: '', message: ''}); // Сбросить форму
+            }, (err) => {
+                console.error('Не удалось отправить письмо. Ошибка:', err);
+            });
     };
 
     return (
         <section id="contact" className="py-20 relative bg-gradient-to-b from-ajackal-black to-ajackal-off-black">
             <div className="container mx-auto px-4">
-                {/* Section header */}
+                {/* Заголовок секции */}
                 <div className="text-center mb-16">
                     <h2 className="text-3xl md:text-4xl font-bold mb-6">
                         Свяжитесь с <span className="ajackal-gradient-text">нами</span>
@@ -32,9 +46,9 @@ const ContactSection = () => {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 max-w-5xl mx-auto">
-                    {/* Contact Form */}
+                    {/* Форма обратной связи */}
                     <div className="glass-card p-6 md:p-8 rounded-xl relative overflow-hidden">
-                        {/* Decorative background elements */}
+                        {/* Декоративные элементы фона */}
                         <div
                             className="absolute -top-16 -left-16 w-32 h-32 bg-ajackal-purple/10 rounded-full blur-xl"></div>
                         <div
@@ -51,7 +65,7 @@ const ContactSection = () => {
                                     </div>
                                     <h4 className="text-xl font-semibold mb-2">Сообщение отправлено!</h4>
                                     <p className="text-ajackal-white/70 text-center">
-                                        Спасибо за ваше обращение. Мы свяжемся с вами в ближайшее время.
+                                        Спасибо за ваше обращение. Мы свяжемся с вами в ближайшее время. Проверяйте вкладку СПАМ, если наше сообщение попало туда.
                                     </p>
                                     <Button
                                         className="mt-6 bg-ajackal-gradient hover:bg-ajackal-dark-gradient"
@@ -69,9 +83,11 @@ const ContactSection = () => {
                                             </label>
                                             <Input
                                                 id="name"
+                                                name="name"
                                                 placeholder="Введите ваше имя"
                                                 className="bg-ajackal-black/50 border-ajackal-purple/30 focus:border-ajackal-purple focus:ring-ajackal-purple"
                                                 required
+                                                onChange={handleChange}
                                             />
                                         </div>
                                         <div>
@@ -80,10 +96,12 @@ const ContactSection = () => {
                                             </label>
                                             <Input
                                                 id="email"
+                                                name="email"
                                                 type="email"
                                                 placeholder="your@email.com"
                                                 className="bg-ajackal-black/50 border-ajackal-purple/30 focus:border-ajackal-purple focus:ring-ajackal-purple"
                                                 required
+                                                onChange={handleChange}
                                             />
                                         </div>
                                     </div>
@@ -93,9 +111,11 @@ const ContactSection = () => {
                                         </label>
                                         <Input
                                             id="subject"
+                                            name="subject"
                                             placeholder="Тема вашего сообщения"
                                             className="bg-ajackal-black/50 border-ajackal-purple/30 focus:border-ajackal-purple focus:ring-ajackal-purple"
                                             required
+                                            onChange={handleChange}
                                         />
                                     </div>
                                     <div>
@@ -104,9 +124,11 @@ const ContactSection = () => {
                                         </label>
                                         <Textarea
                                             id="message"
+                                            name="message"
                                             placeholder="Ваше сообщение..."
                                             className="bg-ajackal-black/50 border-ajackal-purple/30 focus:border-ajackal-purple focus:ring-ajackal-purple min-h-[120px]"
                                             required
+                                            onChange={handleChange}
                                         />
                                     </div>
                                     <div>
@@ -121,9 +143,9 @@ const ContactSection = () => {
                         </div>
                     </div>
 
-                    {/* Contact Information */}
+                    {/* Контактная информация */}
                     <div className="flex flex-col justify-between">
-                        {/* Company Info */}
+                        {/* Информация о компании */}
                         <div className="glass-card p-6 md:p-8 rounded-xl">
                             <h3 className="text-2xl font-semibold mb-6">Контактная информация</h3>
                             <div className="space-y-6">
