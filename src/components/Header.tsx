@@ -1,11 +1,23 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Button } from '@/components/ui/button';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, LogIn, Wallet, User, ChevronDown, PlusCircle } from 'lucide-react';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import AuthDialog from './AuthDialog';
+import TopUpBalanceDialog from './TopUpBalanceDialog';
+import { UserContext } from '@/pages/Index';
 
 const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false);
+  const [isTopUpDialogOpen, setIsTopUpDialogOpen] = useState(false);
+  const { user, setUser } = useContext(UserContext);
 
   // Handle scroll event to style header on scroll
   useEffect(() => {
@@ -17,6 +29,44 @@ const Header = () => {
       window.removeEventListener('scroll', handleScroll);
     };
   }, []);
+
+  // Handle successful authentication
+  const handleAuthSuccess = () => {
+    setUser({
+      isLoggedIn: true,
+      balance: 120, // Example balance in rubles
+      email: 'user@example.com', // Add example email
+    });
+    setIsAuthDialogOpen(false);
+  };
+
+  // Handle successful balance top-up
+  const handleTopUpSuccess = (amount: number) => {
+    if (user) {
+      setUser({
+        ...user,
+        balance: user.balance + amount
+      });
+    }
+  };
+
+  // Get user initials for avatar
+  const getUserInitials = () => {
+    const email = user?.email || '';
+    if (email) {
+      return email.charAt(0).toUpperCase();
+    }
+    return 'U';
+  };
+
+  // Extract username from email (everything before @)
+  const getUsernameFromEmail = () => {
+    const email = user?.email || '';
+    if (email && email.includes('@')) {
+      return email.split('@')[0];
+    }
+    return email;
+  };
 
   return (
     <header 
@@ -54,9 +104,63 @@ const Header = () => {
           <a href="#contact" className="text-ajackal-white/100 hover:text-ajackal-white transition-colors">
             Контакты
           </a>
-          <Button className="bg-ajackal-gradient hover:bg-ajackal-dark-gradient transition-all duration-300">
-            <a href="#try">Попробовать бесплатно</a>
-          </Button>
+          
+          {user && user.isLoggedIn ? (
+            <div className="flex items-center gap-4">
+              {/* Try Now Button comes before balance */}
+              <Button className="bg-ajackal-gradient hover:bg-ajackal-dark-gradient transition-all duration-300">
+                <a href="#try">Попробовать бесплатно</a>
+              </Button>
+              
+              {/* Balance button with clearer indication it can be topped up */}
+              <Button 
+                variant="outline" 
+                className="border-ajackal-purple/60 text-ajackal-white hover:bg-ajackal-purple/20 flex items-center gap-2"
+                onClick={() => setIsTopUpDialogOpen(true)}
+              >
+                <Wallet size={18} />
+                <span>Баланс: {user.balance} ₽</span>
+                <PlusCircle size={14} className="text-ajackal-purple/90" />
+              </Button>
+              
+              {/* User account dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    className="border-ajackal-purple/60 text-ajackal-white hover:bg-ajackal-purple/20 flex items-center gap-2"
+                  >
+                    <Avatar className="h-6 w-6 mr-1">
+                      <AvatarFallback className="bg-ajackal-purple/30 text-white text-xs">
+                        {getUserInitials()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span>{getUsernameFromEmail()}</span>
+                    <ChevronDown size={14} />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="bg-ajackal-black border border-ajackal-purple/30 text-ajackal-white">
+                  <DropdownMenuItem className="hover:bg-ajackal-purple/20" onClick={() => setUser(null)}>
+                    Выйти
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          ) : (
+            <>
+              <Button className="bg-ajackal-gradient hover:bg-ajackal-dark-gradient transition-all duration-300">
+                <a href="#try">Попробовать бесплатно</a>
+              </Button>
+              <Button 
+                variant="outline" 
+                className="border-ajackal-purple/60 text-ajackal-white hover:bg-ajackal-purple/20"
+                onClick={() => setIsAuthDialogOpen(true)}
+              >
+                <LogIn size={18} className="mr-2" />
+                Войти
+              </Button>
+            </>
+          )}
         </nav>
         
         {/* Mobile menu button */}
@@ -87,25 +191,89 @@ const Header = () => {
               Примеры
             </a>
             <a 
-              href="#try" 
-              className="py-2 text-ajackal-white/90 hover:text-ajackal-white transition-colors"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              Попробовать
-            </a>
-            <a 
               href="#contact" 
               className="py-2 text-ajackal-white/90 hover:text-ajackal-white transition-colors"
               onClick={() => setIsMobileMenuOpen(false)}
             >
               Контакты
             </a>
-            <Button className="bg-ajackal-gradient hover:bg-ajackal-dark-gradient transition-all duration-300 w-full mt-2">
-              <a href="#try">Попробовать бесплатно</a>
-            </Button>
+            
+            {user && user.isLoggedIn ? (
+              <>
+                <Button className="bg-ajackal-gradient hover:bg-ajackal-dark-gradient transition-all duration-300 w-full">
+                  <a href="#try">Попробовать бесплатно</a>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="border-ajackal-purple/60 text-ajackal-white hover:bg-ajackal-purple/20 w-full flex items-center justify-between"
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    setIsTopUpDialogOpen(true);
+                  }}
+                >
+                  <span className="flex items-center gap-2">
+                    <Wallet size={18} />
+                    Баланс
+                  </span>
+                  <span className="font-medium flex items-center gap-1">
+                    {user.balance} ₽
+                    <PlusCircle size={14} className="text-ajackal-purple/90" />
+                  </span>
+                </Button>
+                
+                <div className="flex items-center gap-2 p-3 border border-ajackal-purple/30 rounded-md">
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback className="bg-ajackal-purple/30 text-white">
+                      {getUserInitials()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                  <span className="block text-sm">{getUsernameFromEmail()}</span>
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    className="text-ajackal-white/70 hover:text-ajackal-white hover:bg-ajackal-purple/20 h-8 w-8 p-0"
+                    onClick={() => setUser(null)}
+                  >
+                    <LogIn size={18} className="rotate-180" />
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <Button className="bg-ajackal-gradient hover:bg-ajackal-dark-gradient transition-all duration-300 w-full mt-2">
+                  <a href="#try">Попробовать бесплатно</a>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="border-ajackal-purple/60 text-ajackal-white hover:bg-ajackal-purple/20 w-full"
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    setIsAuthDialogOpen(true);
+                  }}
+                >
+                  <LogIn size={18} className="mr-2" />
+                  Войти
+                </Button>
+              </>
+            )}
           </div>
         </div>
       )}
+
+      {/* Auth Dialog */}
+      <AuthDialog 
+        isOpen={isAuthDialogOpen} 
+        onClose={() => setIsAuthDialogOpen(false)} 
+        onAuthSuccess={handleAuthSuccess}
+      />
+
+      {/* Top Up Balance Dialog */}
+      <TopUpBalanceDialog
+        isOpen={isTopUpDialogOpen}
+        onClose={() => setIsTopUpDialogOpen(false)}
+        onSuccess={handleTopUpSuccess}
+      />
     </header>
   );
 };

@@ -1,10 +1,15 @@
-
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState, useContext } from 'react';
 import { Button } from '@/components/ui/button';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, LogIn } from 'lucide-react';
+import AuthDialog from './AuthDialog';
+import { useNavigate } from 'react-router-dom';
+import { UserContext } from '@/pages/Index';
 
 const HeroSection = () => {
   const pixelRef = useRef<HTMLDivElement>(null);
+  const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false);
+  const { user, setUser } = useContext(UserContext);
+  const navigate = useNavigate();
   
   useEffect(() => {
     const handleScroll = () => {
@@ -21,6 +26,15 @@ const HeroSection = () => {
     };
   }, []);
   
+  // Function to handle successful authentication
+  const handleAuthSuccess = () => {
+    setUser({
+      isLoggedIn: true,
+      balance: 5000, // Example balance in rubles
+    });
+    setIsAuthDialogOpen(false);
+  };
+  
   return (
     <section className="min-h-screen pt-20 relative overflow-hidden">
       {/* Background decoration elements */}
@@ -36,16 +50,18 @@ const HeroSection = () => {
       
       <div className="container mx-auto px-4 pt-16 md:pt-24 flex flex-col items-center">
         {/* Animated badge */}
-
+        <div className="glass-morph px-4 py-1 rounded-full mb-6 animate-fade-in">
+          <span className="text-sm font-medium text-ajackal-white/90">Технология будущего</span>
+        </div>
         
         {/* Main heading */}
         <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-center mb-6 max-w-3xl animate-fade-in" style={{ animationDelay: "0.1s" }}>
-          <span className="ajackal-gradient-text">Anti-Jackal:</span> Платформа улучшения медиаконтента
+          <span className="ajackal-gradient-text">Anti-Jackal:</span> Ваш контент на новом уровне!
         </h1>
         
         {/* Subtitle */}
         <p className="text-lg md:text-xl text-center text-ajackal-white/80 max-w-2xl mb-10 animate-fade-in" style={{ animationDelay: "0.2s" }}>
-          Современная технология на базе нейросетей для автоматизированного улучшения качества фотографий и видео
+          Революционная технология на базе нейросетей для автоматизированного улучшения качества фотографий и видео
         </p>
         
         {/* CTA buttons */}
@@ -53,6 +69,17 @@ const HeroSection = () => {
           <Button className="bg-ajackal-gradient hover:bg-ajackal-dark-gradient text-white px-8 py-6 rounded-xl text-lg">
             <a href="#try">Попробовать бесплатно</a>
           </Button>
+          
+          {!user?.isLoggedIn && (
+            <Button 
+              variant="outline" 
+              className="border-ajackal-purple/60 text-ajackal-white hover:bg-ajackal-purple/20 px-8 py-6 rounded-xl text-lg"
+              onClick={() => setIsAuthDialogOpen(true)}
+            >
+              <LogIn className="mr-2 h-5 w-5" />
+              Авторизуйтесь
+            </Button>
+          )}
         </div>
         
         {/* Image showcase with before/after effect */}
@@ -62,7 +89,7 @@ const HeroSection = () => {
             {/* Before image (low quality) */}
             <div className="w-1/2 h-full relative">
               <img 
-                src="img/HeroSection_1.png"  
+                src="/img/HeroSection_1.png" 
                 alt="Изображение до улучшения" 
                 className="w-full h-full object-cover"
               />
@@ -74,7 +101,7 @@ const HeroSection = () => {
             {/* After image (high quality) */}
             <div className="w-1/2 h-full relative">
               <img 
-                src="img/HeroSection_2.png"  
+                src="/img/HeroSection_2.png" 
                 alt="Изображение после улучшения" 
                 className="w-full h-full object-cover"
               />
@@ -98,6 +125,13 @@ const HeroSection = () => {
           <ChevronDown size={20} className="animate-bounce" />
         </a>
       </div>
+
+      {/* Auth Dialog */}
+      <AuthDialog 
+        isOpen={isAuthDialogOpen} 
+        onClose={() => setIsAuthDialogOpen(false)} 
+        onAuthSuccess={handleAuthSuccess}
+      />
     </section>
   );
 };

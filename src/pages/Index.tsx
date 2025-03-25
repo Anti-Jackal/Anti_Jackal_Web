@@ -1,5 +1,4 @@
-
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import Header from '@/components/Header';
 import HeroSection from '@/components/HeroSection';
 import FeaturesSection from '@/components/FeaturesSection';
@@ -8,7 +7,26 @@ import TryNowSection from '@/components/TryNowSection';
 import ContactSection from '@/components/ContactSection';
 import Footer from '@/components/Footer';
 
+// Define a mock user type
+interface User {
+  isLoggedIn: boolean;
+  balance: number;
+  email?: string;
+}
+
+// Create a user context to share user state across components
+export const UserContext = React.createContext<{
+  user: User | null;
+  setUser: React.Dispatch<React.SetStateAction<User | null>>;
+}>({
+  user: null,
+  setUser: () => null,
+});
+
 const Index = () => {
+  // Mock user state - In a real app, this would be managed by context
+  const [user, setUser] = useState<User | null>(null);
+
   // Smooth scroll to sections when navigating
   useEffect(() => {
     const handleHashChange = () => {
@@ -36,17 +54,19 @@ const Index = () => {
   }, []);
   
   return (
-    <div className="min-h-screen bg-ajackal-black text-ajackal-white antialiased overflow-x-hidden">
-      <Header />
-      <main>
-        <HeroSection />
-        <FeaturesSection />
-        <ExamplesSection />
-        <TryNowSection />
-        <ContactSection />
-      </main>
-      <Footer />
-    </div>
+    <UserContext.Provider value={{ user, setUser }}>
+      <div className="min-h-screen bg-ajackal-black text-ajackal-white antialiased overflow-x-hidden">
+        <Header />
+        <main>
+          <HeroSection />
+          <FeaturesSection />
+          <ExamplesSection />
+          <TryNowSection />
+          <ContactSection />
+        </main>
+        <Footer />
+      </div>
+    </UserContext.Provider>
   );
 };
 

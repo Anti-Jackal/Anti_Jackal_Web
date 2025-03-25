@@ -1,5 +1,4 @@
-
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useContext } from 'react';
 import { Button } from '@/components/ui/button';
 import { 
   Upload, 
@@ -9,7 +8,10 @@ import {
   CheckCircle,
   X,
   Download,
-  RefreshCw
+  RefreshCw,
+  Wallet,
+  ArrowRight,
+  LogIn
 } from 'lucide-react';
 import { 
   Select,
@@ -18,6 +20,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
+import TopUpBalanceDialog from './TopUpBalanceDialog';
+import AuthDialog from './AuthDialog';
+import { UserContext } from '@/pages/Index';
 
 const TryNowSection = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -27,18 +33,21 @@ const TryNowSection = () => {
   const [processedImage, setProcessedImage] = useState<string | null>(null);
   const [fileType, setFileType] = useState<'image' | 'video'>('image');
   const [scale, setScale] = useState<string>('3');
+  const [isTopUpDialogOpen, setIsTopUpDialogOpen] = useState(false);
+  const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false);
+  
+  const { user, setUser } = useContext(UserContext);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
   
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     
-    // Detect if it's an image or video
     const isImage = file.type.startsWith('image/');
     setFileType(isImage ? 'image' : 'video');
     
-    // Create preview
     const previewUrl = URL.createObjectURL(file);
     setFilePreview(previewUrl);
     setSelectedFile(file);
@@ -52,11 +61,9 @@ const TryNowSection = () => {
     const file = e.dataTransfer.files?.[0];
     if (!file) return;
     
-    // Detect if it's an image or video
     const isImage = file.type.startsWith('image/');
     setFileType(isImage ? 'image' : 'video');
     
-    // Create preview
     const previewUrl = URL.createObjectURL(file);
     setFilePreview(previewUrl);
     setSelectedFile(file);
@@ -73,10 +80,7 @@ const TryNowSection = () => {
     
     setIsProcessing(true);
     
-    // Simulate processing delay
     setTimeout(() => {
-      // For demo purposes, we'll just use the same image as the processed one
-      // In a real app, this would be replaced with actual API call and processing
       setProcessedImage(filePreview);
       setIsProcessing(false);
       setIsProcessed(true);
@@ -93,23 +97,95 @@ const TryNowSection = () => {
       fileInputRef.current.value = '';
     }
   };
-
-  const handleDownload = () => {
-    if (!processedImage) return;
-
-    const link = document.createElement('a');
-    link.href = processedImage;
-    link.download = `processed_file.${fileType === 'image' ? 'png' : 'mp4'}`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }
+  
+  const getPriceForFullDownload = () => {
+    if (fileType === 'image') {
+      switch (scale) {
+        case '2': return 2;
+        case '3': return 5;
+        case '4': return 10;
+        default: return 5;
+      }
+    } else {
+      switch (scale) {
+        case '2': return 20;
+        case '3': return 40;
+        case '4': return 80;
+        default: return 40;
+      }
+    }
+  };
+  
+  const handleDownload = (isDemo: boolean) => {
+    if (!isDemo) {
+      const price = getPriceForFullDownload();
+      
+      if (!user?.isLoggedIn) {
+        toast({
+          title: "Требуется авторизация",
+          description: "Для скачивания полной версии необходимо авторизоваться",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      if (user.balance < price) {
+        toast({
+          title: "Недостаточно средств",
+          description: `Для скачивания полной версии необходимо ${price} ₽. Ваш баланс: ${user.balance} ₽`,
+          variant: "destructive"
+        });
+        
+        setIsTopUpDialogOpen(true);
+        return;
+      }
+      
+      setUser({
+        ...user,
+        balance: user.balance - price
+      });
+      
+      toast({
+        title: "Оплата прошла успешно",
+        description: `С вашего баланса списано ${price} ₽`,
+        variant: "default"
+      });
+    }
+    
+    if (processedImage) {
+      const link = document.createElement('a');
+      link.href = processedImage;
+      link.download = `anti-jackal-${isDemo ? 'demo' : 'full'}-${Date.now()}.${fileType === 'image' ? 'jpg' : 'mp4'}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+  
+  const handleTopUpSuccess = (amount: number) => {
+    if (user) {
+      setUser({
+        ...user,
+        balance: user.balance + amount
+      });
+    }
+  };
+  
+  const handleAuthSuccess = () => {
+    setUser({
+      isLoggedIn: true,
+      balance: 5000, // Example balance in rubles
+    });
+    setIsAuthDialogOpen(false);
+  };
   
   return (
     <section id="try" className="py-20 relative bg-gradient-to-b from-ajackal-off-black to-ajackal-black">
       <div className="container mx-auto px-4">
-        {/* Section header */}
         <div className="text-center mb-16">
+          <div className="inline-block glass-morph px-4 py-1 rounded-full mb-4">
+            <span className="text-sm font-medium text-ajackal-white/90">Испытайте сами</span>
+          </div>
           <h2 className="text-3xl md:text-4xl font-bold mb-6">
             Попробуйте <span className="ajackal-gradient-text">Anti-Jackal</span> прямо сейчас
           </h2>
@@ -119,7 +195,6 @@ const TryNowSection = () => {
         </div>
         
         <div className="max-w-5xl mx-auto glass-card p-6 md:p-8 rounded-xl">
-          {/* Controls */}
           <div className="flex flex-col md:flex-row gap-4 mb-8">
             <div className="flex-1">
               <label className="block text-sm text-ajackal-white/80 mb-2">Тип контента</label>
@@ -140,7 +215,7 @@ const TryNowSection = () => {
               </Select>
             </div>
             <div className="flex-1">
-              <label className="block text-sm text-ajackal-white/80 mb-2">Коэффициент увеличения разрешения</label>
+              <label className="block text-sm text-ajackal-white/80 mb-2">Коэффициент увеличения</label>
               <Select defaultValue="3" onValueChange={setScale}>
                 <SelectTrigger className="bg-ajackal-black/50 border-ajackal-purple/30 focus:ring-ajackal-purple">
                   <SelectValue placeholder="Выберите коэффициент" />
@@ -155,7 +230,6 @@ const TryNowSection = () => {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Upload Area */}
             <div className="relative">
               <div 
                 className="group h-60 border-2 border-dashed border-ajackal-purple/30 rounded-lg flex flex-col items-center justify-center p-4 transition-all hover:border-ajackal-purple/60 cursor-pointer bg-ajackal-black/30 relative overflow-hidden"
@@ -219,7 +293,6 @@ const TryNowSection = () => {
               </div>
             </div>
             
-            {/* Result Area */}
             <div className="relative">
               <div className="h-60 border-2 border-dashed border-ajackal-purple/20 rounded-lg flex flex-col items-center justify-center p-4 bg-ajackal-black/30 relative overflow-hidden">
                 {isProcessing ? (
@@ -242,14 +315,39 @@ const TryNowSection = () => {
                         controls
                       />
                     )}
-                    <div className="absolute bottom-4 right-4 z-20">
-                      <Button
+                    <div className="absolute bottom-4 right-4 z-20 flex gap-2">
+                      {fileType === 'image' ? (
+                        <Button 
                           className="bg-ajackal-gradient hover:bg-ajackal-dark-gradient flex items-center gap-2"
-                          onClick={handleDownload}
-                      >
-                        <Download className="h-4 w-4" />
-                        <span>Скачать</span>
-                      </Button>
+                          onClick={() => handleDownload(false)}
+                        >
+                          <Download className="h-4 w-4" />
+                          <span>Скачать</span>
+                          <span className="text-xs opacity-80 ml-1">
+                            ({getPriceForFullDownload()} ₽)
+                          </span>
+                        </Button>
+                      ) : (
+                        <>
+                          <Button 
+                            className="bg-ajackal-black/80 hover:bg-ajackal-black border border-ajackal-purple/50 flex items-center gap-2"
+                            onClick={() => handleDownload(true)}
+                          >
+                            <Download className="h-4 w-4" />
+                            <span>Скачать 5 сек</span>
+                          </Button>
+                          <Button 
+                            className="bg-ajackal-gradient hover:bg-ajackal-dark-gradient flex items-center gap-2"
+                            onClick={() => handleDownload(false)}
+                          >
+                            <Download className="h-4 w-4" />
+                            <span>Скачать</span>
+                            <span className="text-xs opacity-80 ml-1">
+                              ({getPriceForFullDownload()} ₽)
+                            </span>
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </>
                 ) : (
@@ -281,7 +379,6 @@ const TryNowSection = () => {
             </div>
           </div>
           
-          {/* Action Buttons */}
           <div className="flex justify-center mt-8">
             {selectedFile && !isProcessed ? (
               <Button 
@@ -317,19 +414,40 @@ const TryNowSection = () => {
             )}
           </div>
           
-          {/* Note */}
           <div className="mt-8 text-center">
             <div className="glass-morph px-4 py-2 rounded-lg inline-block">
               <p className="text-sm text-ajackal-white/70 flex items-center gap-2">
                 <AlertCircle className="h-4 w-4 text-ajackal-purple" />
                 <span>
-                  Это демо-версия. В реальном приложении файл будет отправлен на обработку на сервер.
+                  Цены: Фото от <strong>2 до 10 ₽</strong>, видео от <strong>20 до 80 ₽</strong> (зависит от масштаба). {' '}
+                  {!user?.isLoggedIn && (
+                    <Button 
+                      variant="link" 
+                      className="h-auto p-0 text-ajackal-purple"
+                      onClick={() => setIsAuthDialogOpen(true)}
+                    >
+                      <LogIn className="h-3 w-3 mr-1" />
+                      Авторизуйтесь
+                    </Button>
+                  )}
                 </span>
               </p>
             </div>
           </div>
         </div>
       </div>
+      
+      <TopUpBalanceDialog
+        isOpen={isTopUpDialogOpen}
+        onClose={() => setIsTopUpDialogOpen(false)}
+        onSuccess={handleTopUpSuccess}
+        />
+      
+        <AuthDialog 
+          isOpen={isAuthDialogOpen} 
+          onClose={() => setIsAuthDialogOpen(false)} 
+          onAuthSuccess={handleAuthSuccess}
+      />
     </section>
   );
 };
